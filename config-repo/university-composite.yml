@@ -1,0 +1,56 @@
+server.port: 7000
+
+ribbon.ServerListRefreshInterval: 5000
+
+ribbon.NFLoadBalancerPingInterval: 5
+
+spring.cloud.stream:
+  defaultBinder: rabbit
+  default.contentType: application/json
+  bindings:
+    output-universities:
+      destination: universities
+      producer:
+        required-groups: auditGroup
+    output-students:
+      destination: students
+      producer:
+        required-groups: auditGroup
+
+spring.security.oauth2.resourceserver.jwt.jwk-set-uri: http://${app.auth-server}:9999/.well-known/jwks.json
+
+app.university-service.timeoutSec: 2
+
+resilience4j.retry:
+  backends:
+    university:
+      maxRetryAttempts: 3
+      waitDuration: 1000
+      retryExceptions:
+      - org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError
+
+resilience4j.circuitbreaker:
+  backends:
+    university:
+      registerHealthIndicator: true
+      ringBufferSizeInClosedState: 5
+      failureRateThreshold: 50
+      waitInterval: 10000
+      ringBufferSizeInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      ignoreExceptions:
+        - com.dejanvuk.util.exceptions.InvalidInputException
+        - com.dejanvuk.util.exceptions.NotFoundException
+
+logging:
+  level:
+    root: INFO
+    com.dejanvuk: DEBUG
+    org.springframework.web.server.adapter.HttpWebHandlerAdapter: TRACE
+
+---
+spring.profiles: docker
+
+server.port: 8080
+
+
